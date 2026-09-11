@@ -11,6 +11,10 @@ export const initialNodes: WorkflowNode[] = [
       label: "Webhook",
       description: "Incoming HTTP request",
       type: "webhook",
+      config: {
+        method: "POST",
+        path: "/webhook",
+      },
     },
   },
   {
@@ -21,6 +25,11 @@ export const initialNodes: WorkflowNode[] = [
       label: "HTTP Request",
       description: "Call external API",
       type: "http",
+      config: {
+        method: "GET",
+        url: "",
+        timeout: 30000,
+      },
     },
   },
   {
@@ -31,6 +40,9 @@ export const initialNodes: WorkflowNode[] = [
       label: "Condition",
       description: "Check response",
       type: "condition",
+      config: {
+        expression: "",
+      },
     },
   },
 ];
