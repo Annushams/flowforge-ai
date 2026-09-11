@@ -5,12 +5,19 @@ export type WorkflowNodeKind =
   | "http"
   | "condition"
   | "database"
-  | "ai";
+  | "ai"
+  | "email"
+  | "emailReader";
 
-export interface WorkflowNodeData extends Record<string, unknown> {
+export interface WorkflowNodeData
+  extends Record<string, unknown> {
   label: string;
   description: string;
   type: WorkflowNodeKind;
+  config: Record<string, unknown>;
 }
 
-export type WorkflowNode = Node<WorkflowNodeData, "workflow">;
+export type WorkflowNode = Node<
+  WorkflowNodeData,
+  "workflow"
+>;

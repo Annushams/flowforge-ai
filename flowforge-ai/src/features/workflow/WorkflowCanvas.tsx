@@ -13,20 +13,29 @@ import {
     type ReactFlowInstance,
 } from "@xyflow/react";
 
-import { useCallback, useRef } from "react";
+import {
+    useCallback,
+    useRef,
+    useState,
+} from "react";
 import { useWorkflowStore } from "./workflowStore";
 
 import { WorkflowNode as WorkflowNodeComponent } from "./WorkflowNode";
-import type { NodeDefinition } from "./nodeDefinitions";
+import {
+    getDefaultConfig,
+    type NodeDefinition,
+} from "./nodeDefinitions";
 import type { WorkflowNode } from "./types";
 
 import "@xyflow/react/dist/style.css";
+import { Map } from "lucide-react";
 
 const nodeTypes = {
     workflow: WorkflowNodeComponent,
 };
 
 export function WorkflowCanvas() {
+    const [showMiniMap, setShowMiniMap] = useState(true);
     const nodes = useWorkflowStore((state) => state.nodes);
     const edges = useWorkflowStore((state) => state.edges);
     const setNodes = useWorkflowStore((state) => state.setNodes);
@@ -95,6 +104,7 @@ export function WorkflowCanvas() {
                     label: nodeDefinition.label,
                     description: nodeDefinition.description,
                     type: nodeDefinition.type,
+                    config: getDefaultConfig(nodeDefinition),
                 },
             };
 
@@ -139,7 +149,47 @@ export function WorkflowCanvas() {
         >
             <Background />
             <Controls />
-            <MiniMap />
+            {/* <MiniMap /> */}
+            {showMiniMap && (
+                <MiniMap
+                    pannable
+                    zoomable
+                    className="
+      !overflow-hidden
+      !rounded-lg
+      !border
+      !border-[var(--border)]
+      !bg-[var(--bg-subtle)]
+    "
+                />
+            )}
+
+            <button
+                type="button"
+                onClick={() =>
+                    setShowMiniMap((visible) => !visible)
+                }
+                aria-label={
+                    showMiniMap
+                        ? "Hide workflow minimap"
+                        : "Show workflow minimap"
+                }
+                className="
+    absolute bottom-3 right-3 z-10
+    flex h-8 w-8
+    items-center justify-center
+    rounded-md border
+    border-[var(--border)]
+    bg-[var(--bg-subtle)]
+    text-[var(--text-muted)]
+    shadow-[var(--shadow)]
+    transition
+    hover:bg-[var(--bg-hover)]
+    hover:text-[var(--text-h)]
+  "
+            >
+                <Map size={14} />
+            </button>
         </ReactFlow>
     );
 }
