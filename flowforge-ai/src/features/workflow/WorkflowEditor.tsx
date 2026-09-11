@@ -1,7 +1,11 @@
 import { WorkflowCanvas } from "./WorkflowCanvas";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { NodeLibrary } from "./NodeLibrary";
-import type { NodeDefinition } from "./nodeDefinitions";
+import {
+  nodeDefinitions,
+  type NodeDefinition,
+} from "./nodeDefinitions";
+import { NodeConfigEditor } from "./NodeConfigEditor";
 import { useWorkflowStore } from "./workflowStore";
 
 export function WorkflowEditor() {
@@ -15,6 +19,32 @@ export function WorkflowEditor() {
 
   const selectedNode =
     nodes.find((node) => node.id === selectedNodeId) ?? null;
+
+  const selectedNodeDefinition = selectedNode
+    ? nodeDefinitions.find(
+      (node) => node.type === selectedNode.data.type,
+    )
+    : null;
+
+  const updateNodeData = useWorkflowStore(
+    (state) => state.updateNodeData,
+  );
+
+  const updateNodeConfig = (
+    key: string,
+    value: unknown,
+  ) => {
+    if (!selectedNode) {
+      return;
+    }
+
+    updateNodeData(selectedNode.id, {
+      config: {
+        ...selectedNode.data.config,
+        [key]: value,
+      },
+    });
+  };
 
   const handleNodeDragStart = (
     event: React.DragEvent<HTMLDivElement>,
@@ -47,7 +77,11 @@ export function WorkflowEditor() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--text-muted)]">
+          <span className="
+  text-[12px]
+  font-medium
+  text-[var(--text-h)]
+">
             Saved
           </span>
 
@@ -73,7 +107,7 @@ export function WorkflowEditor() {
         </main>
 
         {/* Inspector */}
-        <aside className="w-80 shrink-0 border-l border-[var(--border)] bg-[var(--bg-subtle)]">
+        <aside className="flex h-full w-80 min-h-0 shrink-0 flex-col border-l border-[var(--border)] bg-[var(--bg-subtle)]">
           <div className="border-b border-[var(--border)] px-4 py-3">
             <h3 className="text-sm font-medium text-[var(--text-h)]">
               Inspector
@@ -81,48 +115,124 @@ export function WorkflowEditor() {
           </div>
 
           {selectedNode ? (
-            <div className="space-y-5 p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="space-y-5 p-4">
 
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  Node
-                </p>
+                <div>
+                  <label
+                    htmlFor="node-label"
+                    className="
+  text-[12px]
+  font-medium
+  text-[var(--text-h)]
+"
+                  >
+                    Label
+                  </label>
 
-                <p className="mt-1 text-sm font-medium text-[var(--text-h)]">
-                  {selectedNode.data.label}
-                </p>
+                  <input
+                    id="node-label"
+                    value={selectedNode.data.label}
+                    onChange={(event) => {
+                      updateNodeData(selectedNode.id, {
+                        label: event.target.value,
+                      });
+                    }}
+                    className="
+  mt-1.5 h-10 w-full rounded-md border
+  border-[var(--border)]
+  bg-[var(--input-bg)]
+  px-3
+  text-[13px]
+  text-[var(--input-text)]
+  outline-none
+  transition
+  placeholder:text-[var(--input-placeholder)]
+  focus:border-[var(--accent)]
+  focus:ring-1
+  focus:ring-[var(--accent)]
+"
+                  />
+                </div>
+
+                <div>
+                  <p className="
+  text-[12px]
+  font-medium
+  text-[var(--text-h)]
+">
+                    Type
+                  </p>
+
+                  <p className="mt-1 text-[13px] text-[var(--text)]">
+                    {selectedNode.data.type}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="node-description"
+                    className="
+  text-[12px]
+  font-medium
+  text-[var(--text-h)]
+"
+                  >
+                    Description
+                  </label>
+
+                  <textarea
+                    id="node-description"
+                    value={selectedNode.data.description}
+                    onChange={(event) => {
+                      updateNodeData(selectedNode.id, {
+                        description: event.target.value,
+                      });
+                    }}
+                    rows={3}
+                    className="
+                  mt-1.5 w-full resize-none rounded-md border
+                  border-[var(--border)]
+                  bg-[var(--bg)]
+                  px-3 py-2 text-xs
+                  leading-5
+                  text-[var(--text-h)]
+                  outline-none
+                  transition
+                  focus:border-[var(--accent)]
+                "
+                  />
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4">
+                  <p className="
+  text-[11px]
+  font-semibold
+  uppercase
+  tracking-wider
+  text-[var(--text-muted)]
+">
+                    Configuration
+                  </p>
+
+                  {selectedNodeDefinition ? (
+                    <NodeConfigEditor
+                      fields={selectedNodeDefinition.configFields}
+                      values={selectedNode.data.config}
+                      onChange={updateNodeConfig}
+                    />
+                  ) : (
+                    <p className="
+  text-[12px]
+  font-medium
+  text-[var(--text-h)]
+">
+                      Configuration is unavailable for this node.
+                    </p>
+                  )}
+                </div>
+
               </div>
-
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  Type
-                </p>
-
-                <p className="mt-1 text-xs text-[var(--text)]">
-                  {selectedNode.data.type}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  Description
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-[var(--text)]">
-                  {selectedNode.data.description}
-                </p>
-              </div>
-
-              <div className="border-t border-[var(--border)] pt-4">
-                <p className="text-xs font-medium text-[var(--text-h)]">
-                  Configuration
-                </p>
-
-                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
-                  Node configuration will appear here.
-                </p>
-              </div>
-
             </div>
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center">

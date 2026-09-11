@@ -4,6 +4,7 @@
   --text: #52525b;
   --text-h: #18181b;
   --text-muted: #71717a;
+  --text-subtle: #a1a1aa;
 
   --bg: #ffffff;
   --bg-subtle: #fafafa;
@@ -12,6 +13,10 @@
 
   --border: #e4e4e7;
   --border-hover: #d4d4d8;
+
+  --input-bg: #ffffff;
+  --input-text: #18181b;
+  --input-placeholder: #a1a1aa;
 
   --code-bg: #f4f4f5;
 
@@ -39,11 +44,8 @@
   --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
 
   font: 14px/145% var(--sans);
-  letter-spacing: 0.01px;
-
   color: var(--text);
   background: var(--bg);
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -53,7 +55,8 @@
 :root[data-theme="dark"] {
   --text: #a1a1aa;
   --text-h: #fafafa;
-  --text-muted: #71717a;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
 
   --bg: #09090b;
   --bg-subtle: #0f0f12;
@@ -62,6 +65,10 @@
 
   --border: #27272a;
   --border-hover: #3f3f46;
+
+  --input-bg: #09090b;
+  --input-text: #fafafa;
+  --input-placeholder: #71717a;
 
   --code-bg: #18181b;
 

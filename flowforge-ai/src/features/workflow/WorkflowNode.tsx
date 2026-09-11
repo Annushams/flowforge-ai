@@ -13,7 +13,7 @@ export function WorkflowNode({
   return (
     <div
       className={[
-        "relative min-w-56 rounded-lg border",
+        "relative w-64 max-w-64 overflow-hidden rounded-lg border",
         "bg-[var(--bg-subtle)]",
         "border-[var(--border)]",
         "shadow-[var(--shadow)]",
@@ -26,22 +26,48 @@ export function WorkflowNode({
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-2 !border-[var(--bg)] !bg-[var(--text-muted)]"
+        className="
+          !h-2 !w-2
+          !border-2
+          !border-[var(--bg)]
+          !bg-[var(--text-muted)]
+        "
       />
 
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-muted)]">
+      <div className="flex min-w-0 items-center gap-3 px-4 py-3">
+        <div
+          className="
+            flex h-8 w-8 shrink-0 items-center justify-center
+            rounded-md border
+            border-[var(--border)]
+            bg-[var(--bg-muted)]
+          "
+        >
           <span className="text-xs font-semibold text-[var(--accent)]">
-            {data.type.slice(0, 1).toUpperCase()}
+            {data.type.slice(0, 2).toUpperCase()}
           </span>
         </div>
 
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-[var(--text-h)]">
+        <div className="min-w-0 flex-1">
+          <p
+            title={data.label}
+            className="
+              truncate text-sm font-semibold
+              text-[var(--text-h)]
+            "
+          >
             {data.label}
           </p>
 
-          <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+          <p
+            title={data.description}
+            className="
+              mt-0.5 overflow-hidden
+              text-ellipsis whitespace-nowrap
+              text-xs leading-4
+              text-[var(--text-muted)]
+            "
+          >
             {data.description}
           </p>
         </div>
@@ -50,7 +76,12 @@ export function WorkflowNode({
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-2 !border-[var(--bg)] !bg-[var(--accent)]"
+        className="
+          !h-2 !w-2
+          !border-2
+          !border-[var(--bg)]
+          !bg-[var(--accent)]
+        "
       />
     </div>
   );
