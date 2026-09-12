@@ -260,3 +260,34 @@ code {
 .react-flow__minimap-node {
   fill: var(--accent);
 }
+
+/* .react-flow__edge-text {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    fill: var(--text-h);
+} */
+
+/* .react-flow__edge-textbg {
+    fill: var(--bg-subtle);
+    stroke: var(--border);
+    stroke-width: 1;
+} */
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke: var(--accent);
+    stroke-width: 2;
+}
+
+.react-flow__edge-text {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    fill: var(--text-h);
+}
+
+.react-flow__edge-textbg {
+    fill: var(--bg-subtle);
+    stroke: var(--border);
+    stroke-width: 1;
+}

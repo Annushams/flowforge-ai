@@ -9,15 +9,26 @@ export type WorkflowNodeKind =
   | "email"
   | "emailReader";
 
+export type WorkflowNodeDataKind =
+  | WorkflowNodeKind
+  | "start"
+  | "end";
+
+export type WorkflowNodeType =
+  | "workflow"
+  | "start"
+  | "end"
+  | "condition";
+
 export interface WorkflowNodeData
   extends Record<string, unknown> {
   label: string;
   description: string;
-  type: WorkflowNodeKind;
+  type: WorkflowNodeDataKind;
   config: Record<string, unknown>;
 }
 
 export type WorkflowNode = Node<
   WorkflowNodeData,
-  "workflow"
+  WorkflowNodeType
 >;
