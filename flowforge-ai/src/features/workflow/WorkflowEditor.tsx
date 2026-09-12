@@ -17,6 +17,19 @@ export function WorkflowEditor() {
     (state) => state.selectedNodeId,
   );
 
+  const edges = useWorkflowStore(
+    (state) => state.edges,
+  );
+
+  const selectedEdgeId = useWorkflowStore(
+    (state) => state.selectedEdgeId,
+  );
+
+  const selectedEdge =
+    edges.find(
+      (edge) => edge.id === selectedEdgeId,
+    ) ?? null;
+
   const selectedNode =
     nodes.find((node) => node.id === selectedNodeId) ?? null;
 
@@ -28,6 +41,10 @@ export function WorkflowEditor() {
 
   const updateNodeData = useWorkflowStore(
     (state) => state.updateNodeData,
+  );
+
+  const updateEdge = useWorkflowStore(
+    (state) => state.updateEdge,
   );
 
   const updateNodeConfig = (
@@ -234,14 +251,145 @@ export function WorkflowEditor() {
 
               </div>
             </div>
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-              <p className="text-xs leading-5 text-[var(--text-muted)]">
-                Select a node on the canvas to view and edit
-                its configuration.
-              </p>
-            </div>
-          )}
+          ) :
+            selectedEdge ? (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="space-y-5 p-4">
+
+                  <div>
+                    <p
+                      className="
+                        text-[11px]
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-[var(--text-muted)]
+                    "
+                    >
+                      Edge
+                    </p>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        font-medium
+                        text-[var(--text-h)]
+                    "
+                    >
+                      Connection
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edge-label"
+                      className="
+                        text-[12px]
+                        font-medium
+                        text-[var(--text-h)]
+                    "
+                    >
+                      Label
+                    </label>
+
+                    <input
+                      id="edge-label"
+                      value={
+                        typeof selectedEdge.label === "string"
+                          ? selectedEdge.label
+                          : ""
+                      }
+                      onChange={(event) => {
+                        updateEdge(
+                          selectedEdge.id,
+                          {
+                            label:
+                              event.target.value ||
+                              undefined,
+                          },
+                        );
+                      }}
+                      placeholder="e.g. User exists"
+                      className="
+                        mt-1.5
+                        h-9
+                        w-full
+                        rounded-md
+                        border
+                        border-[var(--border)]
+                        bg-[var(--bg)]
+                        px-3
+                        text-xs
+                        text-[var(--text-h)]
+                        outline-none
+                        transition
+                        placeholder:text-[var(--text-muted)]
+                        focus:border-[var(--accent)]
+                    "
+                    />
+                  </div>
+
+                  <div className="border-t border-[var(--border)] pt-4">
+
+                    <p
+                      className="
+                        text-[11px]
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-[var(--text-muted)]
+                    "
+                    >
+                      Connection
+                    </p>
+
+                    <div className="mt-3 space-y-3">
+
+                      <div>
+                        <p className="text-[11px] text-[var(--text-muted)]">
+                          Source
+                        </p>
+
+                        <p className="mt-1 font-mono text-[11px] text-[var(--text)]">
+                          {selectedEdge.source}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] text-[var(--text-muted)]">
+                          Source Handle
+                        </p>
+
+                        <p className="mt-1 font-mono text-[11px] text-[var(--text)]">
+                          {selectedEdge.sourceHandle ?? "default"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] text-[var(--text-muted)]">
+                          Target
+                        </p>
+
+                        <p className="mt-1 font-mono text-[11px] text-[var(--text)]">
+                          {selectedEdge.target}
+                        </p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            ) :
+              (
+                <div className="flex h-full items-center justify-center px-6 text-center">
+                  <p className="text-xs leading-5 text-[var(--text-muted)]">
+                    Select a node on the canvas to view and edit
+                    its configuration.
+                  </p>
+                </div>
+              )}
         </aside>
       </main>
 

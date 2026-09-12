@@ -10,6 +10,7 @@ interface WorkflowState {
   edges: Edge[];
 
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
 
   setNodes: (
     nodes:
@@ -24,12 +25,18 @@ interface WorkflowState {
   ) => void;
 
   selectNode: (nodeId: string | null) => void;
+  selectEdge: (edgeId: string | null) => void;
 
   addNode: (node: WorkflowNode) => void;
 
   updateNodeData: (
     nodeId: string,
     data: Partial<WorkflowNode["data"]>,
+  ) => void;
+
+  updateEdge: (
+    edgeId: string,
+    data: Partial<Edge>,
   ) => void;
 
   removeNode: (nodeId: string) => void;
@@ -40,6 +47,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   edges: initialEdges,
 
   selectedNodeId: null,
+  selectedEdgeId: null,
 
   setNodes: (nodes) =>
     set((state) => ({
@@ -60,6 +68,13 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   selectNode: (nodeId) =>
     set({
       selectedNodeId: nodeId,
+      selectedEdgeId: null,
+    }),
+
+  selectEdge: (edgeId) =>
+    set({
+      selectedEdgeId: edgeId,
+      selectedNodeId: null,
     }),
 
   addNode: (node) =>
@@ -72,13 +87,25 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       nodes: state.nodes.map((node) =>
         node.id === nodeId
           ? {
-              ...node,
-              data: {
-                ...node.data,
-                ...data,
-              },
-            }
+            ...node,
+            data: {
+              ...node.data,
+              ...data,
+            },
+          }
           : node,
+      ),
+    })),
+
+  updateEdge: (edgeId, data) =>
+    set((state) => ({
+      edges: state.edges.map((edge) =>
+        edge.id === edgeId
+          ? {
+            ...edge,
+            ...data,
+          }
+          : edge,
       ),
     })),
 
