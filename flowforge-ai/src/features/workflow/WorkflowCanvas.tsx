@@ -30,8 +30,15 @@ import type { WorkflowNode } from "./types";
 import "@xyflow/react/dist/style.css";
 import { Map } from "lucide-react";
 
+import { StartNode } from "./StartNode";
+import { EndNode } from "./EndNode";
+import { ConditionNode } from "./ConditionNode";
+
 const nodeTypes = {
     workflow: WorkflowNodeComponent,
+    start: StartNode,
+    end: EndNode,
+    condition: ConditionNode,
 };
 
 export function WorkflowCanvas() {
@@ -43,6 +50,10 @@ export function WorkflowCanvas() {
     const addNode = useWorkflowStore((state) => state.addNode);
     const selectNode = useWorkflowStore(
         (state) => state.selectNode,
+    );
+
+    const selectEdge = useWorkflowStore(
+        (state) => state.selectEdge,
     );
     const reactFlowInstance = useRef<ReactFlowInstance<WorkflowNode, Edge> | null>(null);
 
@@ -66,6 +77,15 @@ export function WorkflowCanvas() {
             applyEdgeChanges(changes, currentEdges),
         );
     }, [setEdges]);
+
+    // const onConnect = useCallback(
+    //     (connection: Connection) => {
+    //         setEdges((currentEdges) =>
+    //             addEdge(connection, currentEdges),
+    //         );
+    //     },
+    //     [setEdges],
+    // );
 
     const onConnect = useCallback(
         (connection: Connection) => {
@@ -96,9 +116,14 @@ export function WorkflowCanvas() {
                     y: event.clientY,
                 });
 
+            const flowNodeType =
+                nodeDefinition.type === "condition"
+                    ? "condition"
+                    : "workflow";
+
             const newNode: WorkflowNode = {
                 id: `${nodeDefinition.type}_${Date.now()}`,
-                type: "workflow",
+                type: flowNodeType,
                 position,
                 data: {
                     label: nodeDefinition.label,
@@ -143,6 +168,11 @@ export function WorkflowCanvas() {
             onNodeClick={(_, node) => {
                 selectNode(node.id);
             }}
+
+            onEdgeClick={(_, edge) => {
+                selectEdge(edge.id);
+            }}
+
             onPaneClick={() => {
                 selectNode(null);
             }}

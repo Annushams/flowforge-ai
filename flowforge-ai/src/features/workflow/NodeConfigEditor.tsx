@@ -203,9 +203,8 @@ export function NodeConfigEditor({
                                         className="
                     w-full resize-none rounded-md border
                     border-[var(--border)]
-                    bg-[var(--code-bg)]
-                    px-3 py-2
-                    font-mono text-[11px]
+                    bg-[var(--bg)]
+                    px-3 py-2 text-xs
                     leading-5
                     text-[var(--text-h)]
                     outline-none

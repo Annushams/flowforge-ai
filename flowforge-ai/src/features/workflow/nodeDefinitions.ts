@@ -439,21 +439,21 @@ export const nodeDefinitions: NodeDefinition[] = [
         },
       },
 
-      {
-        key: "trueLabel",
-        label: "True Branch",
-        type: "text",
-        required: true,
-        defaultValue: "Yes",
-      },
+      // {
+      //   key: "trueLabel",
+      //   label: "True Branch",
+      //   type: "text",
+      //   required: true,
+      //   defaultValue: "Yes",
+      // },
 
-      {
-        key: "falseLabel",
-        label: "False Branch",
-        type: "text",
-        required: true,
-        defaultValue: "No",
-      },
+      // {
+      //   key: "falseLabel",
+      //   label: "False Branch",
+      //   type: "text",
+      //   required: true,
+      //   defaultValue: "No",
+      // },
     ],
   },
 
