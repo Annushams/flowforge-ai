@@ -1,22 +1,62 @@
 import type { ConfigField } from "./nodeDefinitions";
 import { CredentialSelector } from "../credentials/CredentialSelector";
+import type { WorkflowValidationIssue } from "./validation/types";
+// import type { WorkflowNode } from "./types";
 
 interface NodeConfigEditorProps {
     fields: ConfigField[];
     values: Record<string, unknown>;
     onChange: (key: string, value: unknown) => void;
+    //   node: WorkflowNode;
+    validationIssues?: WorkflowValidationIssue[];
 }
+
+// function isFieldVisible(
+//     field: ConfigField,
+//     values: Record<string, unknown>,
+// ): boolean {
+//     if (!field.visibleWhen) {
+//         return true;
+//     }
+
+//     const actualValue =
+//         values[field.visibleWhen.field];
+
+//     if (
+//         field.visibleWhen.equals !== undefined &&
+//         actualValue !== field.visibleWhen.equals
+//     ) {
+//         return false;
+//     }
+
+//     if (
+//         field.visibleWhen.notEquals !== undefined &&
+//         actualValue === field.visibleWhen.notEquals
+//     ) {
+//         return false;
+//     }
+
+//     return true;
+// }
 
 function isFieldVisible(
     field: ConfigField,
+    fields: ConfigField[],
     values: Record<string, unknown>,
 ): boolean {
     if (!field.visibleWhen) {
         return true;
     }
 
+    const dependencyField = fields.find(
+        (candidate) =>
+            candidate.key ===
+            field.visibleWhen?.field,
+    );
+
     const actualValue =
-        values[field.visibleWhen.field];
+        values[field.visibleWhen.field] ??
+        dependencyField?.defaultValue;
 
     if (
         field.visibleWhen.equals !== undefined &&
@@ -39,6 +79,8 @@ export function NodeConfigEditor({
     fields,
     values,
     onChange,
+    validationIssues = [],
+    //   node,
 }: NodeConfigEditorProps) {
     if (fields.length === 0) {
         return (
@@ -51,9 +93,30 @@ export function NodeConfigEditor({
     return (
         <div className="space-y-5">
             {fields
-                .filter((field) => isFieldVisible(field, values))
+                .filter((field) => isFieldVisible(field, fields, values))
                 .map((field) => {
-                    const value = values[field.key] ?? "";
+                    //   const value = values[field.key] ?? "";
+                    const value =
+                        values[field.key] ??
+                        field.defaultValue ??
+                        "";
+
+                    const fieldIssue = validationIssues.find(
+                        (issue) => issue.field === field.key,
+                    );
+
+                    const inputClassName = `
+            w-full rounded-md border
+            bg-[var(--input-bg)]
+            px-3 text-[13px]
+            text-[var(--input-text)]
+            outline-none
+            transition
+            ${fieldIssue
+                            ? "border-[var(--error)] focus:border-[var(--error)] focus:ring-1 focus:ring-[var(--error)]"
+                            : "border-[var(--border)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                        }
+          `;
 
                     return (
                         <div key={field.key}>
@@ -89,17 +152,11 @@ export function NodeConfigEditor({
                                             )
                                         }
                                         placeholder={field.placeholder}
-                                        className="
-                    h-9 w-full rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 text-xs
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    placeholder:text-[var(--text-muted)]
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      h-10
+                      placeholder:text-[var(--input-placeholder)]
+                    `}
                                     />
                                 )}
 
@@ -116,17 +173,11 @@ export function NodeConfigEditor({
                                         }
                                         placeholder={field.placeholder}
                                         autoComplete="new-password"
-                                        className="
-                    h-9 w-full rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 text-xs
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    placeholder:text-[var(--text-muted)]
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      h-10
+                      placeholder:text-[var(--input-placeholder)]
+                    `}
                                     />
                                 )}
 
@@ -146,17 +197,11 @@ export function NodeConfigEditor({
                                             )
                                         }
                                         placeholder={field.placeholder}
-                                        className="
-                    h-9 w-full rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 text-xs
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    placeholder:text-[var(--text-muted)]
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      h-10
+                      placeholder:text-[var(--input-placeholder)]
+                    `}
                                     />
                                 )}
 
@@ -172,18 +217,13 @@ export function NodeConfigEditor({
                                         }
                                         placeholder={field.placeholder}
                                         rows={field.rows ?? 4}
-                                        className="
-                    w-full resize-none rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 py-2 text-xs
-                    leading-5
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    placeholder:text-[var(--text-muted)]
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      resize-none
+                      py-2
+                      leading-5
+                      placeholder:text-[var(--input-placeholder)]
+                    `}
                                     />
                                 )}
 
@@ -200,18 +240,14 @@ export function NodeConfigEditor({
                                         placeholder={field.placeholder}
                                         rows={field.rows ?? 5}
                                         spellCheck={false}
-                                        className="
-                    w-full resize-none rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 py-2 text-xs
-                    leading-5
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    placeholder:text-[var(--text-muted)]
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      resize-none
+                      py-2
+                      leading-5
+                      placeholder:text-[var(--input-placeholder)]
+                      font-[var(--mono)]
+                    `}
                                     />
                                 )}
 
@@ -225,16 +261,10 @@ export function NodeConfigEditor({
                                                 event.target.value,
                                             )
                                         }
-                                        className="
-                    h-9 w-full rounded-md border
-                    border-[var(--border)]
-                    bg-[var(--bg)]
-                    px-3 text-xs
-                    text-[var(--text-h)]
-                    outline-none
-                    transition
-                    focus:border-[var(--accent)]
-                  "
+                                        className={`
+                      ${inputClassName}
+                      h-10
+                    `}
                                     >
                                         {field.options?.map((option) => (
                                             <option
@@ -248,37 +278,66 @@ export function NodeConfigEditor({
                                 )}
 
                                 {field.type === "boolean" && (
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            id={`config-${field.key}`}
-                                            type="checkbox"
-                                            checked={Boolean(value)}
-                                            onChange={(event) =>
-                                                onChange(
-                                                    field.key,
-                                                    event.target.checked,
-                                                )
+                                    <div
+                                        className={`
+                      rounded-md border px-3 py-2.5
+                      ${fieldIssue
+                                                ? "border-[var(--error)]"
+                                                : "border-[var(--border)]"
                                             }
-                                            className="
-                      h-4 w-4 rounded
-                      border-[var(--border)]
-                      accent-[var(--accent)]
-                    "
-                                        />
+                    `}
+                                    >
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                id={`config-${field.key}`}
+                                                type="checkbox"
+                                                checked={Boolean(value)}
+                                                onChange={(event) =>
+                                                    onChange(
+                                                        field.key,
+                                                        event.target.checked,
+                                                    )
+                                                }
+                                                className="
+                          h-4 w-4 rounded
+                          border-[var(--border)]
+                          accent-[var(--accent)]
+                        "
+                                            />
 
-                                        <span className="text-xs text-[var(--text)]">
-                                            Enabled
-                                        </span>
-                                    </label>
+                                            <span className="text-[13px] text-[var(--text)]">
+                                                Enabled
+                                            </span>
+                                        </label>
+                                    </div>
                                 )}
 
                                 {field.type === "credential" && (
-                                    <CredentialSelector
-                                        value={String(value)}
-                                        onChange={(nextValue) =>
-                                            onChange(field.key, nextValue)
-                                        }
-                                    />
+                                    <div
+                                        className={`
+                      rounded-md border
+                      ${fieldIssue
+                                                ? "border-[var(--error)]"
+                                                : "border-[var(--border)]"
+                                            }
+                    `}
+                                    >
+                                        <CredentialSelector
+                                            value={String(value)}
+                                            onChange={(nextValue) =>
+                                                onChange(
+                                                    field.key,
+                                                    nextValue,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                )}
+
+                                {fieldIssue && (
+                                    <p className="mt-1 text-[11px] leading-4 text-[var(--error)]">
+                                        {fieldIssue.message}
+                                    </p>
                                 )}
                             </div>
                         </div>

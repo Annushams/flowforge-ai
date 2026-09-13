@@ -17,6 +17,7 @@ import {
     useCallback,
     useRef,
     useState,
+    useEffect,
 } from "react";
 import { useWorkflowStore } from "./workflowStore";
 
@@ -55,16 +56,117 @@ export function WorkflowCanvas() {
     const selectEdge = useWorkflowStore(
         (state) => state.selectEdge,
     );
+
+    const selectedNodeId =
+        useWorkflowStore(
+            (state) => state.selectedNodeId,
+        );
+
+    const selectedEdgeId =
+        useWorkflowStore(
+            (state) => state.selectedEdgeId,
+        );
+
+    const removeNode =
+        useWorkflowStore(
+            (state) => state.removeNode,
+        );
+
+    const removeEdge =
+        useWorkflowStore(
+            (state) => state.removeEdge,
+        );
+        
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement;
+
+            const isEditing =
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.tagName === "SELECT" ||
+                target.isContentEditable;
+
+            if (isEditing) {
+                return;
+            }
+
+            if (
+                event.key !== "Delete" &&
+                event.key !== "Backspace"
+            ) {
+                return;
+            }
+
+            if (selectedNodeId) {
+                removeNode(selectedNodeId);
+                return;
+            }
+
+            if (selectedEdgeId) {
+                removeEdge(selectedEdgeId);
+            }
+        };
+
+        window.addEventListener(
+            "keydown",
+            handleKeyDown,
+        );
+
+        return () => {
+            window.removeEventListener(
+                "keydown",
+                handleKeyDown,
+            );
+        };
+    }, [
+        selectedNodeId,
+        selectedEdgeId,
+        removeNode,
+        removeEdge,
+    ]);
+
     const reactFlowInstance = useRef<ReactFlowInstance<WorkflowNode, Edge> | null>(null);
 
-    const onNodesChange: OnNodesChange<WorkflowNode> = useCallback(
-        (changes) => {
-            setNodes((currentNodes) =>
-                applyNodeChanges(changes, currentNodes),
-            );
-        },
-        [setNodes],
-    );
+    // const onNodesChange: OnNodesChange<WorkflowNode> = useCallback(
+    //     (changes) => {
+    //         setNodes((currentNodes) =>
+    //             applyNodeChanges(changes, currentNodes),
+    //         );
+    //     },
+    //     [setNodes],
+    // );
+
+    const onNodesChange: OnNodesChange<WorkflowNode> =
+        useCallback(
+            (changes) => {
+                setNodes((currentNodes) => {
+                    const protectedNodeIds = new Set(
+                        currentNodes
+                            .filter(
+                                (node) =>
+                                    node.data.type === "start" ||
+                                    node.data.type === "end",
+                            )
+                            .map((node) => node.id),
+                    );
+
+                    const safeChanges = changes.filter(
+                        (change) =>
+                            !(
+                                change.type === "remove" &&
+                                protectedNodeIds.has(change.id)
+                            ),
+                    );
+
+                    return applyNodeChanges(
+                        safeChanges,
+                        currentNodes,
+                    );
+                });
+            },
+            [setNodes],
+        );
 
     // const onEdgesChange: OnEdgesChange = useCallback((changes) => {
     //     setEdges((currentEdges) =>
