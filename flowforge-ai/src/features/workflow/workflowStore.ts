@@ -5,12 +5,22 @@ import type { Edge } from "@xyflow/react";
 import { initialEdges, initialNodes } from "./initialWorkflow";
 import type { WorkflowNode } from "./types";
 
+import type {
+  WorkflowValidationResult,
+} from "./validation/types";
+
+import { validateWorkflow } from "./validation/workflowValidator";
+
 interface WorkflowState {
   nodes: WorkflowNode[];
   edges: Edge[];
 
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
+
+  validation: WorkflowValidationResult;
+
+  validateWorkflow: () => WorkflowValidationResult;
 
   setNodes: (
     nodes:
@@ -40,30 +50,59 @@ interface WorkflowState {
   ) => void;
 
   removeNode: (nodeId: string) => void;
+
+  removeEdge: (edgeId: string) => void;
 }
 
-export const useWorkflowStore = create<WorkflowState>((set) => ({
+export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialNodes,
   edges: initialEdges,
 
   selectedNodeId: null,
   selectedEdgeId: null,
 
+  // validation: {
+  //   valid: true,
+  //   errors: [],
+  //   warnings: [],
+  // },
+
+  validation: validateWorkflow(
+    initialNodes,
+    initialEdges,
+  ),
+
   setNodes: (nodes) =>
-    set((state) => ({
-      nodes:
+    set((state) => {
+      const nextNodes =
         typeof nodes === "function"
           ? nodes(state.nodes)
-          : nodes,
-    })),
+          : nodes;
+
+      return {
+        nodes: nextNodes,
+        validation: validateWorkflow(
+          nextNodes,
+          state.edges,
+        ),
+      };
+    }),
 
   setEdges: (edges) =>
-    set((state) => ({
-      edges:
+    set((state) => {
+      const nextEdges =
         typeof edges === "function"
           ? edges(state.edges)
-          : edges,
-    })),
+          : edges;
+
+      return {
+        edges: nextEdges,
+        validation: validateWorkflow(
+          state.nodes,
+          nextEdges,
+        ),
+      };
+    }),
 
   selectNode: (nodeId) =>
     set({
@@ -78,52 +117,140 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
     }),
 
   addNode: (node) =>
-    set((state) => ({
-      nodes: [...state.nodes, node],
-    })),
+    set((state) => {
+      const nextNodes = [
+        ...state.nodes,
+        node,
+      ];
+
+      return {
+        nodes: nextNodes,
+        validation: validateWorkflow(
+          nextNodes,
+          state.edges,
+        ),
+      };
+    }),
 
   updateNodeData: (nodeId, data) =>
-    set((state) => ({
-      nodes: state.nodes.map((node) =>
-        node.id === nodeId
-          ? {
-            ...node,
-            data: {
-              ...node.data,
-              ...data,
-            },
-          }
-          : node,
-      ),
-    })),
+    set((state) => {
+      const nextNodes = state.nodes.map(
+        (node) =>
+          node.id === nodeId
+            ? {
+              ...node,
+              data: {
+                ...node.data,
+                ...data,
+              },
+            }
+            : node,
+      );
+
+      return {
+        nodes: nextNodes,
+        validation: validateWorkflow(
+          nextNodes,
+          state.edges,
+        ),
+      };
+    }),
 
   updateEdge: (edgeId, data) =>
-    set((state) => ({
-      edges: state.edges.map((edge) =>
-        edge.id === edgeId
-          ? {
-            ...edge,
-            ...data,
-          }
-          : edge,
-      ),
-    })),
+    set((state) => {
+      const nextEdges = state.edges.map(
+        (edge) =>
+          edge.id === edgeId
+            ? {
+              ...edge,
+              ...data,
+            }
+            : edge,
+      );
+
+      return {
+        edges: nextEdges,
+        validation: validateWorkflow(
+          state.nodes,
+          nextEdges,
+        ),
+      };
+    }),
+
+  removeEdge: (edgeId) =>
+    set((state) => {
+      const nextEdges = state.edges.filter(
+        (edge) => edge.id !== edgeId,
+      );
+
+      return {
+        edges: nextEdges,
+
+        selectedEdgeId:
+          state.selectedEdgeId === edgeId
+            ? null
+            : state.selectedEdgeId,
+
+        validation: validateWorkflow(
+          state.nodes,
+          nextEdges,
+        ),
+      };
+    }),
 
   removeNode: (nodeId) =>
-    set((state) => ({
-      nodes: state.nodes.filter(
-        (node) => node.id !== nodeId,
-      ),
+    set((state) => {
+      const node = state.nodes.find(
+        (item) => item.id === nodeId,
+      );
 
-      edges: state.edges.filter(
+      if (
+        !node ||
+        node.data.type === "start" ||
+        node.data.type === "end"
+      ) {
+        return state;
+      }
+
+      const nextNodes = state.nodes.filter(
+        (item) => item.id !== nodeId,
+      );
+
+      const nextEdges = state.edges.filter(
         (edge) =>
           edge.source !== nodeId &&
           edge.target !== nodeId,
-      ),
+      );
 
-      selectedNodeId:
-        state.selectedNodeId === nodeId
-          ? null
-          : state.selectedNodeId,
-    })),
+      return {
+        nodes: nextNodes,
+        edges: nextEdges,
+
+        selectedNodeId:
+          state.selectedNodeId === nodeId
+            ? null
+            : state.selectedNodeId,
+
+        validation: validateWorkflow(
+          nextNodes,
+          nextEdges,
+        ),
+      };
+    }),
+
+  validateWorkflow: () => {
+    const { nodes, edges } = get();
+
+    const result = validateWorkflow(
+      nodes,
+      edges,
+    );
+
+    set({
+      validation: result,
+    });
+
+    return result;
+  },
+
 }));

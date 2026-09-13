@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { WorkflowCanvas } from "./WorkflowCanvas";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { NodeLibrary } from "./NodeLibrary";
@@ -7,8 +8,16 @@ import {
 } from "./nodeDefinitions";
 import { NodeConfigEditor } from "./NodeConfigEditor";
 import { useWorkflowStore } from "./workflowStore";
+// import { validateWorkflow } from "./validation/workflowValidator";
+import { ValidationStatus } from "./validation/ValidationStatus";
+import { ValidationPanel } from "./validation/ValidationPanel";
 
 export function WorkflowEditor() {
+
+  const [showValidation, setShowValidation] = useState(false);
+  const [validationFocusField, setValidationFocusField] =
+    useState<string | null>(null);
+
   const nodes = useWorkflowStore(
     (state) => state.nodes,
   );
@@ -32,6 +41,34 @@ export function WorkflowEditor() {
 
   const selectedNode =
     nodes.find((node) => node.id === selectedNodeId) ?? null;
+
+  const removeNode = useWorkflowStore(
+    (state) => state.removeNode,
+  );
+
+  const removeEdge = useWorkflowStore(
+    (state) => state.removeEdge,
+  );
+
+  const validation = useWorkflowStore(
+    (state) => state.validation,
+  );
+
+  const selectedNodeIssues = selectedNode
+    ? validation.errors.filter(
+      (issue) => issue.nodeId === selectedNode.id,
+    )
+    : [];
+
+  // console.log("FlowForge validation:", validation);
+
+  // const validateWorkflow = useWorkflowStore(
+  //   (state) => state.validateWorkflow,
+  // );
+
+  // useEffect(() => {
+  //   validateWorkflow();
+  // }, [validateWorkflow]);
 
   const selectedNodeDefinition = selectedNode
     ? nodeDefinitions.find(
@@ -75,6 +112,44 @@ export function WorkflowEditor() {
     event.dataTransfer.effectAllowed = "copy";
   };
 
+  const selectNode = useWorkflowStore(
+    (state) => state.selectNode,
+  );
+
+  const selectEdge = useWorkflowStore(
+    (state) => state.selectEdge,
+  );
+
+  useEffect(() => {
+    if (!validationFocusField) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(
+        `config-${validationFocusField}`,
+      );
+
+      if (element instanceof HTMLElement) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        element.focus();
+      }
+
+      setValidationFocusField(null);
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [
+    selectedNodeId,
+    validationFocusField,
+  ]);
+
   return (
     <div className="flex h-full flex-col bg-[var(--bg)]">
       {/* Header */}
@@ -104,6 +179,13 @@ export function WorkflowEditor() {
 
           <ThemeToggle />
 
+          <ValidationStatus
+            validation={validation}
+            onClick={() => {
+              setShowValidation(true);
+            }}
+          />
+
           <button className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-h)]">
             Test
           </button>
@@ -119,8 +201,31 @@ export function WorkflowEditor() {
 
         <NodeLibrary onDragStart={handleNodeDragStart} />
 
-        <main className="min-w-0 flex-1">
+        <main className="relative min-w-0 flex-1">
           <WorkflowCanvas />
+
+          {showValidation && (
+            <ValidationPanel
+              validation={validation}
+              onClose={() => {
+                setShowValidation(false);
+              }}
+              onIssueClick={(issue) => {
+                if (issue.nodeId) {
+                  selectNode(issue.nodeId);
+                  setValidationFocusField(
+                    issue.field ?? null,
+                  );
+                }
+
+                if (issue.edgeId) {
+                  selectEdge(issue.edgeId);
+                }
+
+                setShowValidation(false);
+              }}
+            />
+          )}
         </main>
 
         {/* Inspector */}
@@ -237,6 +342,8 @@ export function WorkflowEditor() {
                       fields={selectedNodeDefinition.configFields}
                       values={selectedNode.data.config}
                       onChange={updateNodeConfig}
+                      // node={selectedNode}
+                      validationIssues={selectedNodeIssues}
                     />
                   ) : (
                     <p className="
@@ -247,6 +354,47 @@ export function WorkflowEditor() {
                       Configuration is unavailable for this node.
                     </p>
                   )}
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedNode) {
+                        removeNode(selectedNode.id);
+                      }
+                    }}
+                    disabled={
+                      selectedNode.data.type === "start" ||
+                      selectedNode.data.type === "end"
+                    }
+                    className="
+            w-full
+            rounded-md
+            border
+            border-[var(--border)]
+            px-3
+            py-2
+            text-xs
+            font-medium
+            text-[var(--error)]
+            transition
+            hover:bg-[var(--bg-hover)]
+            disabled:cursor-not-allowed
+            disabled:opacity-40
+        "
+                  >
+                    Delete Node
+                  </button>
+
+                  {(selectedNode.data.type === "start" ||
+                    selectedNode.data.type === "end") && (
+                      <p className="mt-2 text-[11px] leading-4 text-[var(--text-muted)]">
+                        {selectedNode.data.type === "start"
+                          ? "The Start node is required."
+                          : "The End node is required."}
+                      </p>
+                    )}
                 </div>
 
               </div>
@@ -377,6 +525,32 @@ export function WorkflowEditor() {
                       </div>
 
                     </div>
+                  </div>
+
+                  <div className="border-t border-[var(--border)] pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedEdge) {
+                          removeEdge(selectedEdge.id);
+                        }
+                      }}
+                      className="
+            w-full
+            rounded-md
+            border
+            border-[var(--border)]
+            px-3
+            py-2
+            text-xs
+            font-medium
+            text-[var(--error)]
+            transition
+            hover:bg-[var(--bg-hover)]
+        "
+                    >
+                      Delete Connection
+                    </button>
                   </div>
 
                 </div>

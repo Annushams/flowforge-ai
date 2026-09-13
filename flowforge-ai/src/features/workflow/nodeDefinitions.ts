@@ -947,3 +947,12 @@ export function getDefaultConfig(
       ]),
   );
 }
+
+export function getNodeDefinition(
+  type: WorkflowNodeKind,
+): NodeDefinition | undefined {
+  return nodeDefinitions.find(
+    (definition) =>
+      definition.type === type,
+  );
+}
