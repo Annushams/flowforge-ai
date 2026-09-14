@@ -10,9 +10,35 @@ export type ConfigFieldType =
   | "boolean"
   | "json";
 
-export interface ConfigOption {
-  label: string;
-  value: string;
+export type ConfigFieldFormat =
+  | "plainText"
+  | "url"
+  | "email"
+  | "path"
+  | "json"
+  | "xml"
+  | "sql"
+  | "expression"
+  | "emailList";
+
+export interface ConfigValidation {
+  minLength?: number;
+  maxLength?: number;
+
+  pattern?: string;
+
+  format?: ConfigFieldFormat;
+
+  min?: number;
+  max?: number;
+
+  allowEmpty?: boolean;
+
+  when?: {
+    field: string;
+    equals?: unknown;
+    notEquals?: unknown;
+  };
 }
 
 export interface ConfigField {
@@ -24,7 +50,6 @@ export interface ConfigField {
 
   description?: string;
   placeholder?: string;
-
   defaultValue?: unknown;
 
   options?: ConfigOption[];
@@ -41,6 +66,13 @@ export interface ConfigField {
     equals?: unknown;
     notEquals?: unknown;
   };
+
+  validation?: ConfigValidation;
+}
+
+export interface ConfigOption {
+  label: string;
+  value: string;
 }
 
 export interface NodeDefinition {
@@ -93,6 +125,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         defaultValue: "/webhook",
         placeholder: "/webhook",
         description: "The endpoint that triggers this workflow.",
+        validation: {
+          format: "path",
+          maxLength: 200,
+        },
       },
 
       {
@@ -171,6 +207,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         type: "text",
         required: true,
         placeholder: "https://api.example.com/users",
+        validation: {
+          format: "url",
+          maxLength: 2048,
+        },
       },
 
       {
@@ -209,6 +249,10 @@ export const nodeDefinitions: NodeDefinition[] = [
   "limit": "20"
 }`,
         rows: 6,
+        validation: {
+          format: "json",
+          maxLength: 50000,
+        },
       },
 
       {
@@ -220,6 +264,10 @@ export const nodeDefinitions: NodeDefinition[] = [
   "Accept": "application/json"
 }`,
         rows: 7,
+        validation: {
+          format: "json",
+          maxLength: 50000,
+        },
       },
 
       {
@@ -245,6 +293,14 @@ export const nodeDefinitions: NodeDefinition[] = [
   "email": "{{trigger.body.email}}"
 }`,
         rows: 10,
+        validation: {
+          format: "json",
+          maxLength: 100000,
+          when: {
+            field: "bodyType",
+            equals: "json",
+          },
+        },
         visibleWhen: {
           field: "bodyType",
           notEquals: "none",
@@ -272,6 +328,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder: "200-299",
         description:
           "Status code or range considered successful.",
+        validation: {
+          pattern: "^(?:[1-5]\\d{2})(?:-[1-5]\\d{2})?$",
+          maxLength: 7,
+        },
       },
 
       {
@@ -356,6 +416,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder: "{{http_1.status}}",
         description:
           "Value from the previous node or workflow context.",
+        validation: {
+          maxLength: 5000,
+        },
         visibleWhen: {
           field: "mode",
           equals: "simple",
@@ -418,6 +481,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         type: "text",
         required: true,
         placeholder: "200",
+        validation: {
+          maxLength: 1000,
+        },
         visibleWhen: {
           field: "mode",
           equals: "simple",
@@ -433,6 +499,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         rows: 6,
         description:
           "Advanced expression evaluated against the workflow context.",
+        validation: {
+          format: "expression",
+          maxLength: 10000,
+        },
         visibleWhen: {
           field: "mode",
           equals: "advanced",
@@ -533,6 +603,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder:
           "SELECT * FROM users WHERE id = {{trigger.body.userId}}",
         rows: 8,
+        validation: {
+          format: "sql",
+          maxLength: 100000,
+        },
       },
 
       {
@@ -543,6 +617,10 @@ export const nodeDefinitions: NodeDefinition[] = [
   "userId": "{{trigger.body.userId}}"
 }`,
         rows: 5,
+        validation: {
+          format: "json",
+          maxLength: 50000,
+        },
       },
 
       {
@@ -589,6 +667,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         type: "text",
         required: true,
         placeholder: "llama-3.3-70b-versatile",
+        validation: {
+          format: "plainText",
+          maxLength: 200,
+        },
       },
 
       {
@@ -625,6 +707,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder:
           "Analyze the incoming customer request and classify its priority.",
         rows: 8,
+        validation: {
+          maxLength: 20000,
+        },
       },
 
       {
@@ -671,6 +756,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder:
           "You are an enterprise workflow automation assistant.",
         rows: 5,
+        validation: {
+          maxLength: 10000,
+        },
       },
       {
         key: "input",
@@ -680,6 +768,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder:
           "{{http_1.body}}",
         rows: 6,
+        validation: {
+          maxLength: 50000,
+        },
       },
     ],
   },
@@ -714,6 +805,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         type: "text",
         required: true,
         placeholder: "alerts@example.com",
+        validation: {
+          format: "email",
+          maxLength: 254,
+        },
       },
 
       {
@@ -724,6 +819,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder: "team@example.com",
         description:
           "Multiple recipients can be separated by commas.",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
 
       {
@@ -731,6 +830,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "CC",
         type: "text",
         placeholder: "manager@example.com",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
 
       {
@@ -738,6 +841,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "BCC",
         type: "text",
         placeholder: "audit@example.com",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
 
       {
@@ -746,6 +853,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         type: "text",
         required: true,
         placeholder: "Workflow notification",
+        validation: {
+          maxLength: 998,
+        },
       },
 
       {
@@ -756,6 +866,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         placeholder:
           "The workflow completed successfully.\n\nStatus: {{http_1.status}}",
         rows: 10,
+        validation: {
+          maxLength: 100000,
+        },
       },
 
       {
@@ -781,6 +894,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "Reply-To",
         type: "text",
         placeholder: "support@example.com",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
       {
         key: "priority",
@@ -814,6 +931,10 @@ export const nodeDefinitions: NodeDefinition[] = [
   }
 ]`,
         rows: 5,
+        validation: {
+          format: "json",
+          maxLength: 50000,
+        },
       },
     ],
   },
@@ -849,6 +970,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         required: true,
         defaultValue: "INBOX",
         placeholder: "INBOX",
+        validation: {
+          maxLength: 255,
+        },
       },
 
       {
@@ -856,6 +980,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "From",
         type: "text",
         placeholder: "alerts@example.com",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
 
       {
@@ -863,6 +991,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "Subject Contains",
         type: "text",
         placeholder: "Incident",
+        validation: {
+          maxLength: 1000,
+        },
       },
 
       {
@@ -903,6 +1034,10 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "To",
         type: "text",
         placeholder: "support@example.com",
+        validation: {
+          format: "emailList",
+          maxLength: 4000,
+        },
       },
 
       {
@@ -910,6 +1045,9 @@ export const nodeDefinitions: NodeDefinition[] = [
         label: "Body Contains",
         type: "text",
         placeholder: "production",
+        validation: {
+          maxLength: 10000,
+        },
       },
 
       {
