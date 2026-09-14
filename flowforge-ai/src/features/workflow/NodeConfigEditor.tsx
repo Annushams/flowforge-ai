@@ -1,348 +1,336 @@
+import { useState } from "react";
+
 import type { ConfigField } from "./nodeDefinitions";
 import { CredentialSelector } from "../credentials/CredentialSelector";
 import type { WorkflowValidationIssue } from "./validation/types";
-// import type { WorkflowNode } from "./types";
 
 interface NodeConfigEditorProps {
-    fields: ConfigField[];
-    values: Record<string, unknown>;
-    onChange: (key: string, value: unknown) => void;
-    //   node: WorkflowNode;
-    validationIssues?: WorkflowValidationIssue[];
+  fields: ConfigField[];
+  values: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+  validationIssues?: WorkflowValidationIssue[];
+  validationFocusField?: string | null;
 }
 
-// function isFieldVisible(
-//     field: ConfigField,
-//     values: Record<string, unknown>,
-// ): boolean {
-//     if (!field.visibleWhen) {
-//         return true;
-//     }
-
-//     const actualValue =
-//         values[field.visibleWhen.field];
-
-//     if (
-//         field.visibleWhen.equals !== undefined &&
-//         actualValue !== field.visibleWhen.equals
-//     ) {
-//         return false;
-//     }
-
-//     if (
-//         field.visibleWhen.notEquals !== undefined &&
-//         actualValue === field.visibleWhen.notEquals
-//     ) {
-//         return false;
-//     }
-
-//     return true;
-// }
-
 function isFieldVisible(
-    field: ConfigField,
-    fields: ConfigField[],
-    values: Record<string, unknown>,
+  field: ConfigField,
+  values: Record<string, unknown>,
 ): boolean {
-    if (!field.visibleWhen) {
-        return true;
-    }
-
-    const dependencyField = fields.find(
-        (candidate) =>
-            candidate.key ===
-            field.visibleWhen?.field,
-    );
-
-    const actualValue =
-        values[field.visibleWhen.field] ??
-        dependencyField?.defaultValue;
-
-    if (
-        field.visibleWhen.equals !== undefined &&
-        actualValue !== field.visibleWhen.equals
-    ) {
-        return false;
-    }
-
-    if (
-        field.visibleWhen.notEquals !== undefined &&
-        actualValue === field.visibleWhen.notEquals
-    ) {
-        return false;
-    }
-
+  if (!field.visibleWhen) {
     return true;
+  }
+
+  const actualValue = values[field.visibleWhen.field];
+
+  if (
+    field.visibleWhen.equals !== undefined &&
+    actualValue !== field.visibleWhen.equals
+  ) {
+    return false;
+  }
+
+  if (
+    field.visibleWhen.notEquals !== undefined &&
+    actualValue === field.visibleWhen.notEquals
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function sanitizeTextInput(value: string): string {
+  // Remove NUL and other non-display control characters while preserving
+  // normal whitespace/newlines used by SQL, JSON, prompts and email bodies.
+  return Array.from(value)
+    .filter((character) => {
+      const codePoint = character.charCodeAt(0);
+
+      return !(
+        codePoint === 0 ||
+        (codePoint >= 1 && codePoint <= 8) ||
+        (codePoint >= 11 && codePoint <= 12) ||
+        (codePoint >= 14 && codePoint <= 31) ||
+        codePoint === 127
+      );
+    })
+    .join("");
 }
 
 export function NodeConfigEditor({
-    fields,
-    values,
-    onChange,
-    validationIssues = [],
-    //   node,
+  fields,
+  values,
+  onChange,
+  validationIssues = [],
+  validationFocusField = null,
 }: NodeConfigEditorProps) {
-    if (fields.length === 0) {
-        return (
-            <p className="text-xs leading-5 text-[var(--text-muted)]">
-                This node has no configurable properties.
-            </p>
-        );
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(
+    new Set(),
+  );
+
+  if (fields.length === 0) {
+    return (
+      <p className="text-xs leading-5 text-[var(--text-muted)]">
+        This node has no configurable properties.
+      </p>
+    );
+  }
+
+  const markTouched = (key: string) => {
+    setTouchedFields((current) => {
+      const next = new Set(current);
+      next.add(key);
+      return next;
+    });
+  };
+
+  const handleTextChange = (
+    field: ConfigField,
+    value: string,
+  ) => {
+    const sanitized = sanitizeTextInput(value);
+    const maxLength = field.validation?.maxLength;
+    const bounded =
+      maxLength !== undefined
+        ? sanitized.slice(0, maxLength)
+        : sanitized;
+
+    onChange(field.key, bounded);
+  };
+
+  const handleNumberChange = (
+    field: ConfigField,
+    value: string,
+  ) => {
+    if (value === "") {
+      onChange(field.key, "");
+      return;
     }
 
-    return (
-        <div className="space-y-5">
-            {fields
-                .filter((field) => isFieldVisible(field, fields, values))
-                .map((field) => {
-                    //   const value = values[field.key] ?? "";
-                    const value =
-                        values[field.key] ??
-                        field.defaultValue ??
-                        "";
+    const parsed = Number(value);
 
-                    const fieldIssue = validationIssues.find(
-                        (issue) => issue.field === field.key,
-                    );
+    if (Number.isFinite(parsed)) {
+      onChange(field.key, parsed);
+    }
+  };
 
-                    const inputClassName = `
-            w-full rounded-md border
-            bg-[var(--input-bg)]
-            px-3 text-[13px]
-            text-[var(--input-text)]
-            outline-none
-            transition
-            ${fieldIssue
-                            ? "border-[var(--error)] focus:border-[var(--error)] focus:ring-1 focus:ring-[var(--error)]"
-                            : "border-[var(--border)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
-                        }
-          `;
+  const defaultValues = Object.fromEntries(
+    fields
+      .filter(
+        (field) => field.defaultValue !== undefined,
+      )
+      .map((field) => [
+        field.key,
+        field.defaultValue,
+      ]),
+  );
 
-                    return (
-                        <div key={field.key}>
-                            <label
-                                htmlFor={`config-${field.key}`}
-                                className="text-[12px] font-medium text-[var(--text-h)]"
-                            >
-                                {field.label}
+  const effectiveValues = {
+    ...defaultValues,
+    ...values,
+  };
 
-                                {field.required && (
-                                    <span className="ml-1 text-[var(--error)]">
-                                        *
-                                    </span>
-                                )}
-                            </label>
+  const visibleFields = fields.filter((field) =>
+    isFieldVisible(field, effectiveValues),
+  );
 
-                            {field.description && (
-                                <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
-                                    {field.description}
-                                </p>
-                            )}
+  return (
+    <div className="space-y-5">
+      {visibleFields.map((field) => {
+        const value =
+          effectiveValues[field.key] ?? "";
+        const fieldIssue = validationIssues.find(
+          (issue) => issue.field === field.key,
+        );
+        const showIssue =
+          Boolean(fieldIssue) &&
+          (
+            touchedFields.has(field.key) ||
+            validationFocusField === field.key
+          );
+        const maxLength = field.validation?.maxLength;
+        const stringValue =
+          typeof value === "string" ? value : String(value);
 
-                            <div className="mt-1.5">
-                                {field.type === "text" && (
-                                    <input
-                                        id={`config-${field.key}`}
-                                        type="text"
-                                        value={String(value)}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder={field.placeholder}
-                                        className={`
-                      ${inputClassName}
-                      h-10
-                      placeholder:text-[var(--input-placeholder)]
-                    `}
-                                    />
-                                )}
+        const inputBorder = showIssue
+          ? "border-[var(--error)] focus:border-[var(--error)] focus:ring-1 focus:ring-[var(--error)]"
+          : "border-[var(--border)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]";
 
-                                {field.type === "password" && (
-                                    <input
-                                        id={`config-${field.key}`}
-                                        type="password"
-                                        value={String(value)}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder={field.placeholder}
-                                        autoComplete="new-password"
-                                        className={`
-                      ${inputClassName}
-                      h-10
-                      placeholder:text-[var(--input-placeholder)]
-                    `}
-                                    />
-                                )}
+        return (
+          <div key={field.key}>
+            <label
+              htmlFor={`config-${field.key}`}
+              className="text-[12px] font-medium text-[var(--text-h)]"
+            >
+              {field.label}
+              {field.required && (
+                <span className="ml-1 text-[var(--error)]">*</span>
+              )}
+            </label>
 
-                                {field.type === "number" && (
-                                    <input
-                                        id={`config-${field.key}`}
-                                        type="number"
-                                        value={String(value)}
-                                        min={field.min}
-                                        max={field.max}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value === ""
-                                                    ? ""
-                                                    : Number(event.target.value),
-                                            )
-                                        }
-                                        placeholder={field.placeholder}
-                                        className={`
-                      ${inputClassName}
-                      h-10
-                      placeholder:text-[var(--input-placeholder)]
-                    `}
-                                    />
-                                )}
+            {field.description && (
+              <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
+                {field.description}
+              </p>
+            )}
 
-                                {field.type === "textarea" && (
-                                    <textarea
-                                        id={`config-${field.key}`}
-                                        value={String(value)}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder={field.placeholder}
-                                        rows={field.rows ?? 4}
-                                        className={`
-                      ${inputClassName}
-                      resize-none
-                      py-2
-                      leading-5
-                      placeholder:text-[var(--input-placeholder)]
-                    `}
-                                    />
-                                )}
+            <div className="mt-1.5">
+              {field.type === "text" && (
+                <input
+                  id={`config-${field.key}`}
+                  type="text"
+                  value={stringValue}
+                  maxLength={maxLength}
+                  onChange={(event) =>
+                    handleTextChange(field, event.target.value)
+                  }
+                  onBlur={() => markTouched(field.key)}
+                  placeholder={field.placeholder}
+                  aria-invalid={showIssue}
+                  className={`h-10 w-full rounded-md border bg-[var(--input-bg)] px-3 text-[13px] text-[var(--input-text)] placeholder:text-[var(--input-placeholder)] outline-none transition ${inputBorder}`}
+                />
+              )}
 
-                                {field.type === "json" && (
-                                    <textarea
-                                        id={`config-${field.key}`}
-                                        value={String(value)}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder={field.placeholder}
-                                        rows={field.rows ?? 5}
-                                        spellCheck={false}
-                                        className={`
-                      ${inputClassName}
-                      resize-none
-                      py-2
-                      leading-5
-                      placeholder:text-[var(--input-placeholder)]
-                      font-[var(--mono)]
-                    `}
-                                    />
-                                )}
+              {field.type === "password" && (
+                <input
+                  id={`config-${field.key}`}
+                  type="password"
+                  value={stringValue}
+                  maxLength={maxLength}
+                  onChange={(event) =>
+                    handleTextChange(field, event.target.value)
+                  }
+                  onBlur={() => markTouched(field.key)}
+                  placeholder={field.placeholder}
+                  autoComplete="new-password"
+                  aria-invalid={showIssue}
+                  className={`h-10 w-full rounded-md border bg-[var(--input-bg)] px-3 text-[13px] text-[var(--input-text)] placeholder:text-[var(--input-placeholder)] outline-none transition ${inputBorder}`}
+                />
+              )}
 
-                                {field.type === "select" && (
-                                    <select
-                                        id={`config-${field.key}`}
-                                        value={String(value)}
-                                        onChange={(event) =>
-                                            onChange(
-                                                field.key,
-                                                event.target.value,
-                                            )
-                                        }
-                                        className={`
-                      ${inputClassName}
-                      h-10
-                    `}
-                                    >
-                                        {field.options?.map((option) => (
-                                            <option
-                                                key={option.value}
-                                                value={option.value}
-                                            >
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
+              {field.type === "number" && (
+                <input
+                  id={`config-${field.key}`}
+                  type="number"
+                  value={stringValue}
+                  min={field.min}
+                  max={field.max}
+                  onChange={(event) =>
+                    handleNumberChange(field, event.target.value)
+                  }
+                  onBlur={() => markTouched(field.key)}
+                  placeholder={field.placeholder}
+                  aria-invalid={showIssue}
+                  className={`h-10 w-full rounded-md border bg-[var(--input-bg)] px-3 text-[13px] text-[var(--input-text)] placeholder:text-[var(--input-placeholder)] outline-none transition ${inputBorder}`}
+                />
+              )}
 
-                                {field.type === "boolean" && (
-                                    <div
-                                        className={`
-                      rounded-md border px-3 py-2.5
-                      ${fieldIssue
-                                                ? "border-[var(--error)]"
-                                                : "border-[var(--border)]"
-                                            }
-                    `}
-                                    >
-                                        <label className="flex items-center gap-2">
-                                            <input
-                                                id={`config-${field.key}`}
-                                                type="checkbox"
-                                                checked={Boolean(value)}
-                                                onChange={(event) =>
-                                                    onChange(
-                                                        field.key,
-                                                        event.target.checked,
-                                                    )
-                                                }
-                                                className="
-                          h-4 w-4 rounded
-                          border-[var(--border)]
-                          accent-[var(--accent)]
-                        "
-                                            />
+              {field.type === "textarea" && (
+                <textarea
+                  id={`config-${field.key}`}
+                  value={stringValue}
+                  maxLength={maxLength}
+                  onChange={(event) =>
+                    handleTextChange(field, event.target.value)
+                  }
+                  onBlur={() => markTouched(field.key)}
+                  placeholder={field.placeholder}
+                  rows={field.rows ?? 4}
+                  aria-invalid={showIssue}
+                  className={`w-full resize-none rounded-md border bg-[var(--input-bg)] px-3 py-2 text-[13px] leading-5 text-[var(--input-text)] placeholder:text-[var(--input-placeholder)] outline-none transition ${inputBorder}`}
+                />
+              )}
 
-                                            <span className="text-[13px] text-[var(--text)]">
-                                                Enabled
-                                            </span>
-                                        </label>
-                                    </div>
-                                )}
+              {field.type === "json" && (
+                <textarea
+                  id={`config-${field.key}`}
+                  value={stringValue}
+                  maxLength={maxLength}
+                  onChange={(event) =>
+                    handleTextChange(field, event.target.value)
+                  }
+                  onBlur={() => markTouched(field.key)}
+                  placeholder={field.placeholder}
+                  rows={field.rows ?? 5}
+                  spellCheck={false}
+                  aria-invalid={showIssue}
+                  className={`w-full resize-none rounded-md border bg-[var(--code-bg)] px-3 py-2 font-[var(--mono)] text-[11px] leading-5 text-[var(--text-h)] placeholder:text-[var(--text-muted)] outline-none transition ${inputBorder}`}
+                />
+              )}
 
-                                {field.type === "credential" && (
-                                    <div
-                                        className={`
-                      rounded-md border
-                      ${fieldIssue
-                                                ? "border-[var(--error)]"
-                                                : "border-[var(--border)]"
-                                            }
-                    `}
-                                    >
-                                        <CredentialSelector
-                                            value={String(value)}
-                                            onChange={(nextValue) =>
-                                                onChange(
-                                                    field.key,
-                                                    nextValue,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                )}
+              {field.type === "select" && (
+                <select
+                  id={`config-${field.key}`}
+                  value={stringValue}
+                  onChange={(event) => {
+                    onChange(field.key, event.target.value);
+                    markTouched(field.key);
+                  }}
+                  aria-invalid={showIssue}
+                  className={`h-10 w-full rounded-md border bg-[var(--input-bg)] px-3 text-[13px] text-[var(--input-text)] outline-none transition ${inputBorder}`}
+                >
+                  {field.options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
 
-                                {fieldIssue && (
-                                    <p className="mt-1 text-[11px] leading-4 text-[var(--error)]">
-                                        {fieldIssue.message}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-        </div>
-    );
+              {field.type === "boolean" && (
+                <label
+                  className={`flex items-center gap-2 rounded-md border px-3 py-2 ${showIssue ? "border-[var(--error)]" : "border-[var(--border)]"}`}
+                >
+                  <input
+                    id={`config-${field.key}`}
+                    type="checkbox"
+                    checked={Boolean(value)}
+                    onChange={(event) => {
+                      onChange(field.key, event.target.checked);
+                      markTouched(field.key);
+                    }}
+                    className="h-4 w-4 rounded border-[var(--border)] accent-[var(--accent)]"
+                  />
+                  <span className="text-xs text-[var(--text)]">
+                    Enabled
+                  </span>
+                </label>
+              )}
+
+              {field.type === "credential" && (
+                <div
+                  className={`rounded-md border p-1 ${showIssue ? "border-[var(--error)]" : "border-[var(--border)]"}`}
+                  onBlur={() => markTouched(field.key)}
+                >
+                  <CredentialSelector
+                    value={stringValue}
+                    onChange={(nextValue) => {
+                      onChange(field.key, nextValue);
+                      markTouched(field.key);
+                    }}
+                  />
+                </div>
+              )}
+
+              {maxLength !== undefined &&
+                (field.type === "text" ||
+                  field.type === "password" ||
+                  field.type === "textarea" ||
+                  field.type === "json") && (
+                  <div className="mt-1 flex justify-end text-[10px] text-[var(--text-subtle)]">
+                    {stringValue.length}/{maxLength}
+                  </div>
+                )}
+
+              {showIssue && fieldIssue && (
+                <p className="mt-1 text-[11px] leading-4 text-[var(--error)]">
+                  {fieldIssue.message}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

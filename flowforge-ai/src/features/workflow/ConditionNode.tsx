@@ -3,30 +3,39 @@ import {
     Position,
     type NodeProps,
 } from "@xyflow/react";
-
 import type { WorkflowNode } from "./types";
+import { useWorkflowStore } from "./workflowStore";
 
 export function ConditionNode({
+    id,
     data,
     selected,
 }: NodeProps<WorkflowNode>) {
+    const hasValidationError = useWorkflowStore(
+        (state) =>
+            state.validation.errors.some(
+                (issue) => issue.nodeId === id,
+            ),
+    );
+
     return (
         <div className="relative h-36 w-36">
-
             {/* Diamond */}
             <div
                 className={[
                     "absolute inset-4",
                     "rotate-45",
-                    "rounded-xl border",
+                    "rounded-xl",
+                    "border",
                     "bg-[var(--bg-subtle)]",
-                    "border-[var(--border)]",
                     "shadow-[var(--shadow)]",
                     "transition-all duration-150",
 
-                    selected
-                        ? "border-[var(--accent)] shadow-[var(--accent-shadow)]"
-                        : "hover:border-[var(--border-hover)]",
+                    hasValidationError
+                        ? "border-[var(--error)]"
+                        : selected
+                            ? "border-[var(--accent)] shadow-[var(--accent-shadow)]"
+                            : "border-[var(--border)] hover:border-[var(--border-hover)]",
                 ].join(" ")}
             />
 

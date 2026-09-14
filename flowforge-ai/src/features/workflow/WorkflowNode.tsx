@@ -28,7 +28,7 @@ export function WorkflowNode({
         "transition-all duration-150",
 
         hasValidationError
-          ? "border-[var(--error)]"
+          ? "border-[var(--error)] shadow-[0_0_0_2px_var(--error),var(--shadow)]"
           : selected
             ? "border-[var(--accent)] shadow-[var(--accent-shadow)]"
             : "border-[var(--border)] hover:border-[var(--border-hover)]",
