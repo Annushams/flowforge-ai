@@ -8,15 +8,17 @@ import {
 } from "./nodeDefinitions";
 import { NodeConfigEditor } from "./NodeConfigEditor";
 import { useWorkflowStore } from "./workflowStore";
-// import { validateWorkflow } from "./validation/workflowValidator";
 import { ValidationStatus } from "./validation/ValidationStatus";
 import { ValidationPanel } from "./validation/ValidationPanel";
 
 export function WorkflowEditor() {
 
   const [showValidation, setShowValidation] = useState(false);
-  const [validationFocusField, setValidationFocusField] =
-    useState<string | null>(null);
+  const [validationFocus, setValidationFocus] =
+    useState<{
+      nodeId: string;
+      field: string | null;
+    } | null>(null);
 
   const nodes = useWorkflowStore(
     (state) => state.nodes,
@@ -59,16 +61,6 @@ export function WorkflowEditor() {
       (issue) => issue.nodeId === selectedNode.id,
     )
     : [];
-
-  // console.log("FlowForge validation:", validation);
-
-  // const validateWorkflow = useWorkflowStore(
-  //   (state) => state.validateWorkflow,
-  // );
-
-  // useEffect(() => {
-  //   validateWorkflow();
-  // }, [validateWorkflow]);
 
   const selectedNodeDefinition = selectedNode
     ? nodeDefinitions.find(
@@ -121,13 +113,17 @@ export function WorkflowEditor() {
   );
 
   useEffect(() => {
-    if (!validationFocusField) {
+    if (
+      !validationFocus ||
+      validationFocus.nodeId !== selectedNodeId ||
+      !validationFocus.field
+    ) {
       return;
     }
 
     const frame = requestAnimationFrame(() => {
       const element = document.getElementById(
-        `config-${validationFocusField}`,
+        `config-${validationFocus.field}`,
       );
 
       if (element instanceof HTMLElement) {
@@ -138,8 +134,6 @@ export function WorkflowEditor() {
 
         element.focus();
       }
-
-      setValidationFocusField(null);
     });
 
     return () => {
@@ -147,7 +141,7 @@ export function WorkflowEditor() {
     };
   }, [
     selectedNodeId,
-    validationFocusField,
+    validationFocus,
   ]);
 
   return (
@@ -193,6 +187,12 @@ export function WorkflowEditor() {
           <button className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-text)] transition hover:opacity-90">
             Run
           </button>
+
+          {/* <button
+            className="run-button rounded-md px-3 py-1.5 text-xs"
+          >
+            Run
+          </button> */}
         </div>
       </header>
 
@@ -213,13 +213,16 @@ export function WorkflowEditor() {
               onIssueClick={(issue) => {
                 if (issue.nodeId) {
                   selectNode(issue.nodeId);
-                  setValidationFocusField(
-                    issue.field ?? null,
-                  );
+
+                  setValidationFocus({
+                    nodeId: issue.nodeId,
+                    field: issue.field ?? null,
+                  });
                 }
 
                 if (issue.edgeId) {
                   selectEdge(issue.edgeId);
+                  setValidationFocus(null);
                 }
 
                 setShowValidation(false);
@@ -260,6 +263,7 @@ export function WorkflowEditor() {
                         label: event.target.value,
                       });
                     }}
+                    maxLength={200}
                     className="
   mt-1.5 h-10 w-full rounded-md border
   border-[var(--border)]
@@ -312,6 +316,7 @@ export function WorkflowEditor() {
                       });
                     }}
                     rows={3}
+                    maxLength={2000}
                     className="
                   mt-1.5 w-full resize-none rounded-md border
                   border-[var(--border)]
@@ -342,8 +347,12 @@ export function WorkflowEditor() {
                       fields={selectedNodeDefinition.configFields}
                       values={selectedNode.data.config}
                       onChange={updateNodeConfig}
-                      // node={selectedNode}
                       validationIssues={selectedNodeIssues}
+                      validationFocusField={
+                        validationFocus?.nodeId === selectedNode?.id
+                          ? validationFocus.field
+                          : null
+                      }
                     />
                   ) : (
                     <p className="
@@ -443,6 +452,7 @@ export function WorkflowEditor() {
 
                     <input
                       id="edge-label"
+                      maxLength={200}
                       value={
                         typeof selectedEdge.label === "string"
                           ? selectedEdge.label

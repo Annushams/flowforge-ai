@@ -11,6 +11,11 @@ import type {
 
 import { validateWorkflow } from "./validation/workflowValidator";
 
+import {
+  getNodeDefinition,
+  getDefaultConfig,
+} from "./nodeDefinitions";
+
 interface WorkflowState {
   nodes: WorkflowNode[];
   edges: Edge[];
@@ -116,11 +121,62 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       selectedNodeId: null,
     }),
 
+  // addNode: (node) =>
+  //   set((state) => {
+  //     const nextNodes = [
+  //       ...state.nodes,
+  //       node,
+  //     ];
+
+  //     return {
+  //       nodes: nextNodes,
+  //       validation: validateWorkflow(
+  //         nextNodes,
+  //         state.edges,
+  //       ),
+  //     };
+  //   }),
+
   addNode: (node) =>
     set((state) => {
+      if (
+        node.data.type === "start" ||
+        node.data.type === "end"
+      ) {
+        const nextNodes = [
+          ...state.nodes,
+          node,
+        ];
+
+        return {
+          nodes: nextNodes,
+          validation: validateWorkflow(
+            nextNodes,
+            state.edges,
+          ),
+        };
+      }
+
+      const definition = getNodeDefinition(
+        node.data.type,
+      );
+
+      const nextNode = definition
+        ? {
+          ...node,
+          data: {
+            ...node.data,
+            config: {
+              ...getDefaultConfig(definition),
+              ...node.data.config,
+            },
+          },
+        }
+        : node;
+
       const nextNodes = [
         ...state.nodes,
-        node,
+        nextNode,
       ];
 
       return {
